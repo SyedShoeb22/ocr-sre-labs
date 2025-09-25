@@ -34,7 +34,7 @@ jobs:
 
       - name: Configure OCI CLI
         run: |
-          echo "${{ secrets.OCI_PRIVATE_KEY }}" | base64 --decode > ~/oci_api_key.pem
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > ~/oci_api_key.pem
           chmod 600 ~/oci_api_key.pem
           oci setup config --tenancy $OCI_TENANCY_OCID \
                            --user $OCI_USER_OCID \
