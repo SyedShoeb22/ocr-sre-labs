@@ -28,10 +28,10 @@ jobs:
 
       - name: Install OCI CLI
         run: |
-          curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh | bash -s -- --accept-all-defaults --install-dir ~/bin
-          echo "$HOME/bin/oci-cli/bin" >> $GITHUB_PATH
-          oci --version
-      
+          curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh | bash -s -- --accept-all-defaults --install-dir /home/runner/bin
+          echo "/home/runner/bin" >> $GITHUB_PATH
+          /home/runner/bin/oci --version
+
       - name: Configure OCI CLI
         run: |
           echo "${{ secrets.OCI_PRIVATE_KEY }}" > ~/oci_api_key.pem
@@ -45,7 +45,9 @@ jobs:
           tenancy=${{ secrets.OCI_TENANCY_OCID }}
           region=${{ secrets.OCI_REGION }}
           EOF
-          oci iam compartment list --all
+      
+          /home/runner/bin/oci iam compartment list --all
+
 
       - name: Terraform Init
         run: terraform init
