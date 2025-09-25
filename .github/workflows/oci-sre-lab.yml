@@ -1,0 +1,62 @@
+name: OCI SRE Lab Provision
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  terraform-deploy:
+    name: Terraform Deploy OCI Lab
+    runs-on: ubuntu-latest
+
+    env:
+      # These should be stored as GitHub Secrets
+      OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+      OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+      OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+      OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}       # Base64 encoded
+      OCI_REGION: ${{ secrets.OCI_REGION }}
+      COMPARTMENT_OCID: ${{ secrets.COMPARTMENT_OCID }}
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
+
+      - name: Install OCI CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install oci
+
+      - name: Configure OCI CLI
+        run: |
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" | base64 --decode > ~/oci_api_key.pem
+          chmod 600 ~/oci_api_key.pem
+          oci setup config --tenancy $OCI_TENANCY_OCID \
+                           --user $OCI_USER_OCID \
+                           --fingerprint $OCI_FINGERPRINT \
+                           --key-file ~/oci_api_key.pem \
+                           --region $OCI_REGION \
+                           --config-file ~/.oci/config \
+                           --overwrite
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -var "compartment_ocid=$COMPARTMENT_OCID"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var "compartment_ocid=$COMPARTMENT_OCID"
+
+      - name: Run OCI Python Script
+        run: |
+          pip install oci
+          python scripts/list_instances.py
