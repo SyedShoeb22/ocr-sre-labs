@@ -28,21 +28,24 @@ jobs:
 
       - name: Install OCI CLI
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip
-          pip3 install oci
-
+          curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh | bash -s -- --accept-all-defaults --install-dir ~/bin
+          echo "$HOME/bin/oci-cli/bin" >> $GITHUB_PATH
+          oci --version
+      
       - name: Configure OCI CLI
         run: |
           echo "${{ secrets.OCI_PRIVATE_KEY }}" > ~/oci_api_key.pem
           chmod 600 ~/oci_api_key.pem
-          oci setup config --tenancy $OCI_TENANCY_OCID \
-                           --user $OCI_USER_OCID \
-                           --fingerprint $OCI_FINGERPRINT \
-                           --key-file ~/oci_api_key.pem \
-                           --region $OCI_REGION \
-                           --config-file ~/.oci/config \
-                           --overwrite
+          mkdir -p ~/.oci
+          cat > ~/.oci/config <<EOF
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          key_file=~/oci_api_key.pem
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ secrets.OCI_REGION }}
+          EOF
+          oci iam compartment list --all
 
       - name: Terraform Init
         run: terraform init
