@@ -1,7 +1,6 @@
 name: OCI SRE Lab Provision
 
 on:
-  push:
   workflow_dispatch:
 
 jobs:
