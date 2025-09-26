@@ -6,12 +6,12 @@ provider "oci" {
   region           = var.region
 }
 
-# Fetch availability domains
+# Availability domains
 data "oci_identity_availability_domains" "ads" {
   compartment_id = var.tenancy_ocid
 }
 
-# Fetch Oracle Linux 9 images (primary)
+# Oracle Linux 9 images
 data "oci_core_images" "oracle_linux_9" {
   compartment_id           = var.tenancy_ocid
   operating_system         = "Oracle Linux"
@@ -20,7 +20,7 @@ data "oci_core_images" "oracle_linux_9" {
   sort_order               = "DESC"
 }
 
-# Fetch Oracle Linux 8 images (fallback)
+# Oracle Linux 8 fallback
 data "oci_core_images" "oracle_linux_8" {
   compartment_id           = var.tenancy_ocid
   operating_system         = "Oracle Linux"
@@ -29,13 +29,13 @@ data "oci_core_images" "oracle_linux_8" {
   sort_order               = "DESC"
 }
 
-# Safe local variable to pick the first available image
+# Select first available image
 locals {
-  image_id = length(data.oci_core_images.oracle_linux_9.images) > 0 ?
+  image_id = length(data.oci_core_images.oracle_linux_9.images) > 0 ? 
              data.oci_core_images.oracle_linux_9.images[0].id :
              length(data.oci_core_images.oracle_linux_8.images) > 0 ?
              data.oci_core_images.oracle_linux_8.images[0].id :
-             ""  # fail-safe empty string if none exists
+             null
 }
 
 # VCN + Subnet
@@ -52,9 +52,9 @@ resource "oci_core_subnet" "sre_subnet" {
   display_name   = "sre-subnet"
 }
 
-# Compute instance
+# Compute instance (only if image exists)
 resource "oci_core_instance" "sre_instance" {
-  count               = local.image_id != "" ? 1 : 0   # only create if image exists
+  count               = local.image_id != null ? 1 : 0
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id      = var.compartment_ocid
   shape               = "VM.Standard.E2.1.Micro"
@@ -71,8 +71,8 @@ resource "oci_core_instance" "sre_instance" {
   display_name = "sre-instance"
 }
 
+# Output public IP
 output "instance_public_ip" {
-  value = oci_core_instance.sre_instance[0].public_ip
+  value       = length(oci_core_instance.sre_instance) > 0 ? oci_core_instance.sre_instance[0].public_ip : null
   description = "Public IP of the SRE instance"
-  condition   = length(oci_core_instance.sre_instance) > 0
 }
