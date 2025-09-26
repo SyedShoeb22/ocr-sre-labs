@@ -29,13 +29,17 @@ data "oci_core_images" "oracle_linux_8" {
   sort_order               = "DESC"
 }
 
-# Select first available image
+# Select first available image (fixed)
 locals {
-  image_id = length(data.oci_core_images.oracle_linux_9.images) > 0 ? 
-             data.oci_core_images.oracle_linux_9.images[0].id :
-             length(data.oci_core_images.oracle_linux_8.images) > 0 ?
-             data.oci_core_images.oracle_linux_8.images[0].id :
-             null
+  image_id = (
+    length(data.oci_core_images.oracle_linux_9.images) > 0 ?
+    data.oci_core_images.oracle_linux_9.images[0].id :
+    (
+      length(data.oci_core_images.oracle_linux_8.images) > 0 ?
+      data.oci_core_images.oracle_linux_8.images[0].id :
+      null
+    )
+  )
 }
 
 # VCN + Subnet
@@ -52,7 +56,7 @@ resource "oci_core_subnet" "sre_subnet" {
   display_name   = "sre-subnet"
 }
 
-# Compute instance (only if image exists)
+# Compute instance
 resource "oci_core_instance" "sre_instance" {
   count               = local.image_id != null ? 1 : 0
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
