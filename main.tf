@@ -29,16 +29,12 @@ data "oci_core_images" "oracle_linux_8" {
   sort_order               = "DESC"
 }
 
-# Select first available image (fixed)
+# Select first available image safely
 locals {
-  image_id = (
-    length(data.oci_core_images.oracle_linux_9.images) > 0 ?
-    data.oci_core_images.oracle_linux_9.images[0].id :
-    (
-      length(data.oci_core_images.oracle_linux_8.images) > 0 ?
-      data.oci_core_images.oracle_linux_8.images[0].id :
-      null
-    )
+  image_id = try(
+    data.oci_core_images.oracle_linux_9.images[0].id,
+    data.oci_core_images.oracle_linux_8.images[0].id,
+    null
   )
 }
 
@@ -56,7 +52,7 @@ resource "oci_core_subnet" "sre_subnet" {
   display_name   = "sre-subnet"
 }
 
-# Compute instance
+# Compute instance (only if image exists)
 resource "oci_core_instance" "sre_instance" {
   count               = local.image_id != null ? 1 : 0
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
@@ -77,6 +73,6 @@ resource "oci_core_instance" "sre_instance" {
 
 # Output public IP
 output "instance_public_ip" {
-  value       = length(oci_core_instance.sre_instance) > 0 ? oci_core_instance.sre_instance[0].public_ip : null
+  value       = local.image_id != null ? oci_core_instance.sre_instance[0].public_ip : null
   description = "Public IP of the SRE instance"
 }
