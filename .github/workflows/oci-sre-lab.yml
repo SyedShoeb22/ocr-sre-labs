@@ -48,19 +48,29 @@ jobs:
       
           /home/runner/bin/oci iam compartment list --all
 
-
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var "compartment_ocid=$COMPARTMENT_OCID"
-
-      - name: Terraform Apply with Debug
         run: |
-          export TF_LOG=DEBUG
-          export TF_LOG_PATH=terraform-debug.log
-          terraform apply -auto-approve -input=false -no-color
-          cat terraform-debug.log
+          terraform init -input=false
+          terraform plan -input=false \
+            -var "tenancy_ocid=$OCI_TENANCY_OCID" \
+            -var "user_ocid=$OCI_USER_OCID" \
+            -var "fingerprint=$OCI_FINGERPRINT" \
+            -var "private_key_path=~/oci_api_key.pem" \
+            -var "region=$OCI_REGION" \
+            -var "compartment_ocid=$COMPARTMENT_OCID"
+      
+      - name: Terraform Apply
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var "tenancy_ocid=$OCI_TENANCY_OCID" \
+            -var "user_ocid=$OCI_USER_OCID" \
+            -var "fingerprint=$OCI_FINGERPRINT" \
+            -var "private_key_path=~/oci_api_key.pem" \
+            -var "region=$OCI_REGION" \
+            -var "compartment_ocid=$COMPARTMENT_OCID"
 
       - name: Test OCI Auth
         run: oci iam compartment list --debug
