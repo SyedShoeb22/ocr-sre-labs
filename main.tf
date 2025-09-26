@@ -11,15 +11,13 @@ data "oci_identity_availability_domains" "ads" {
   compartment_id = var.tenancy_ocid
 }
 
-# Fetch latest Oracle Linux image (no shape restriction)
+# Fetch latest Oracle Linux image from tenancy root
 data "oci_core_images" "oracle_linux" {
   compartment_id           = var.compartment_ocid
   operating_system         = "Oracle Linux"
-  operating_system_version = "8"
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
-
 
 # Create compute instance
 resource "oci_core_instance" "sre_instance" {
