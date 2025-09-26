@@ -55,13 +55,12 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -var "compartment_ocid=$COMPARTMENT_OCID"
 
-      - name: Terraform Apply (Debug)
-        run: terraform apply -auto-approve -input=false -no-color
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+      - name: Terraform Apply with Debug
+        run: |
+          export TF_LOG=DEBUG
+          export TF_LOG_PATH=terraform-debug.log
+          terraform apply -auto-approve -input=false -no-color
+          cat terraform-debug.log
 
       - name: Test OCI Auth
         run: oci iam compartment list --debug
